@@ -25,10 +25,13 @@ The :class:`AudioComponent` class defined in this module is made available as
 __all__ = ['AudioComponent']
 
 import asyncio
+import os
 from concurrent import futures
 from enum import Enum
 import time
 import wave
+import aiohttp
+from pydub import AudioSegment
 from google.protobuf.text_format import MessageToString
 from . import util
 from .connection import on_connection_thread
@@ -157,6 +160,46 @@ class AudioComponent(util.Component):
         # Need the done message from the robot
         await self._done_event.wait()
         self._done_event.clear()
+
+    async def _download_audio(self, url, filename):
+        """Downloads the audio file from the given URL."""
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status != 200:
+                    raise Exception(f"Failed to download file from {url}")
+                with open(filename, 'wb') as f:
+                    f.write(await response.read())
+        return filename
+
+    def _transcode_to_wav(self, input_filename, output_filename):
+        """Transcodes the audio file to the correct WAV format."""
+        audio = AudioSegment.from_file(input_filename)
+        # Ensure the format: 8000-16025 Hz, 16 bits, 1 channel
+        audio = audio.set_frame_rate(16000).set_sample_width(2).set_channels(1)
+        audio.export(output_filename, format="wav")
+        return output_filename
+
+    @on_connection_thread(requires_control=True)
+    async def stream_audio_from_url(self, url, volume=50):
+        """Downloads and streams an audio file from a URL."""
+        # Download the audio file
+        input_filename = '/tmp/audio_input'
+        output_filename = '/tmp/audio_output.wav'
+
+        try:
+            input_filename = await self._download_audio(url, input_filename)
+
+            # Transcode the file to the correct WAV format
+            output_filename = self._transcode_to_wav(input_filename, output_filename)
+
+            # Stream the transcoded WAV file
+            await self.stream_wav_file(output_filename, volume)
+        finally:
+            # Cleanup temporary files
+            if os.path.exists(input_filename):
+                os.remove(input_filename)
+            if os.path.exists(output_filename):
+                os.remove(output_filename)
 
     @on_connection_thread(requires_control=True)
     async def stream_wav_file(self, filename, volume=50):

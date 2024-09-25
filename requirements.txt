@@ -1,7 +1,12 @@
 aiogrpc>=1.4
-cryptography
-flask
+cryptography~=43.0.1
+flask~=3.0.3
 googleapis-common-protos
 numpy>=1.11
 Pillow>=3.3
-requests
+requests~=2.32.3
+
+pydub~=0.25.1
+protobuf~=5.28.2
+grpcio~=1.66.1
+aiohttp~=3.10.6
