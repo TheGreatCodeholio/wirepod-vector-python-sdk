@@ -454,17 +454,17 @@ class AudioComponent(util.Component):
         if playback_error is not None:
             raise VectorExternalAudioPlaybackException(f"Error reported during audio playback {playback_error}")
 
-    def stream_robot_audio(self):
+    def stream_robot_audio(self, on_audio_chunk_callback):
         """Public method to start the audio stream, yielding chunks for external processing."""
         if self._is_streaming:
             raise RuntimeError("Audio stream already running.")
         self._is_streaming = True
 
-        # Simply return the async generator to be processed by the caller
-        return self._request_and_handle_audio()
+        # Create a background task to handle the audio stream
+        self._audio_feed_task = self.conn.loop.create_task(self._process_audio_feed(on_audio_chunk_callback))
 
-    async def _request_and_handle_audio(self):
-        """Queries and listens for audio feed events from the robot, yielding chunks."""
+    async def _process_audio_feed(self, on_audio_chunk_callback):
+        """Queries and listens for audio feed events from the robot and passes them to the user."""
         try:
             request = protocol.AudioFeedRequest()
             async for response in self.grpc_interface.AudioFeed(request):
@@ -472,7 +472,10 @@ class AudioComponent(util.Component):
                 if not self._is_streaming:
                     self.logger.warning('Audio feed has been disabled.')
                     return
-                yield response  # Yield the audio chunks as they come
+
+                # Pass each audio chunk to the provided callback function
+                on_audio_chunk_callback(response)
+
         except asyncio.CancelledError:
             self.logger.debug('Audio feed task was cancelled.')
 
@@ -481,3 +484,5 @@ class AudioComponent(util.Component):
         if not self._is_streaming:
             raise RuntimeError("Audio stream is not running.")
         self._is_streaming = False
+        if self._audio_feed_task:
+            self._audio_feed_task.cancel()
