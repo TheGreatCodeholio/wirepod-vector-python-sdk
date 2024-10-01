@@ -98,7 +98,6 @@ class Robot:
                                        for observed face regions (eyes, nose, and mouth) as part of the :code:`RobotObservedFace` event.
                                        It is turned off by default as the number of :code:`RobotObservedFace` events
                                        are reduced due to the increased processing time.
-    :param enable_audio_feed: Turn audio feed on/off.
     :param enable_custom_object_detection: Turn custom object detection on/off.
     :param enable_nav_map_feed: Turn navigation map feed on/off.
     :param show_viewer: Specifies whether to display a view of Vector's camera in a window.
@@ -117,7 +116,6 @@ class Robot:
                  cache_animation_lists: bool = False,
                  enable_face_detection: bool = False,
                  estimate_facial_expression: bool = False,
-                 enable_audio_feed: bool = False,
                  enable_custom_object_detection: bool = False,
                  enable_nav_map_feed: bool = None,
                  show_viewer: bool = False,
@@ -652,9 +650,6 @@ class Robot:
             anim_trigger_request = self._anim.load_animation_trigger_list()
             if isinstance(anim_trigger_request, concurrent.futures.Future):
                 anim_trigger_request.result()
-
-        if self.enable_audio_feed:
-            asyncio.create_task(self.audio.stream_audio_from_robot())
 
         # Start rendering camera feed
         if self._show_viewer:

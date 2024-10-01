@@ -123,8 +123,6 @@ class AudioComponent(util.Component):
         # don't create asyncio.Events here, they are not thread-safe
         self._is_active_event = None
         self._done_event = None
-        self._audio_task = None
-        self._audio_queue = asyncio.Queue()
         self._is_streaming = False
 
     @on_connection_thread(requires_control=False)
@@ -481,8 +479,6 @@ class AudioComponent(util.Component):
         if not self._is_streaming:
             raise RuntimeError("Audio stream is not running.")
         self._is_streaming = False
-        if self._audio_task:
-            self._audio_task.cancel()
 
     def is_streaming(self) -> bool:
         """Returns whether the audio stream is active."""
