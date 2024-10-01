@@ -26,13 +26,10 @@ __all__ = ['AudioComponent']
 
 import asyncio
 from concurrent import futures
-from email.mime import audio
 from enum import Enum
 import time
 import wave
 import io
-import os
-from pathlib import Path
 
 import aiohttp
 from pydub import AudioSegment
@@ -42,6 +39,7 @@ from . import util
 from .connection import on_connection_thread
 from .exceptions import VectorExternalAudioPlaybackException
 from .messaging import protocol
+
 
 MAX_ROBOT_AUDIO_CHUNK_SIZE = 1024  # 1024 is maximum, larger sizes will fail
 DEFAULT_FRAME_SIZE = MAX_ROBOT_AUDIO_CHUNK_SIZE // 2
@@ -470,8 +468,8 @@ class AudioComponent(util.Component):
 
     async def _fetch_audio_feed(self):
         """Fetches the audio feed from the robot."""
-        request = self.grpc_interface.AudioFeedRequest()  # Send the request to initiate the audio feed
-        async for response in self.conn.grpc_interface.AudioFeed(request):
+        request = protocol.AudioFeedRequest()  # Send the request to initiate the audio feed
+        async for response in self.grpc_interface.AudioFeed(request):
             yield response.audio_data  # Extract audio data from the response
 
     def stop_audio_stream(self):
