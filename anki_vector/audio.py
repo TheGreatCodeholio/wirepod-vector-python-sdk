@@ -460,12 +460,8 @@ class AudioComponent(util.Component):
             raise RuntimeError("Audio stream already running.")
         self._is_streaming = True
 
-        try:
-            # Call the method to initiate streaming in a separate asyncio task
-            audio_feed_task = self.conn.loop.create_task(self._request_and_handle_audio())
-            return audio_feed_task  # This task will yield audio chunks when awaited
-        finally:
-            self._is_streaming = False
+        # Simply return the async generator to be processed by the caller
+        return self._request_and_handle_audio()
 
     async def _request_and_handle_audio(self):
         """Queries and listens for audio feed events from the robot, yielding chunks."""
