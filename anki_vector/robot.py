@@ -576,17 +576,6 @@ class Robot:
         """
         return self._status
 
-    def start_audio_stream(self):
-        """Start the audio stream and return chunks for processing."""
-        if self.audio:
-            for chunk in self.audio.stream_robot_audio():
-                yield chunk
-
-    def stop_audio_stream(self):
-        """Stop the audio stream if it's running."""
-        if self.audio and self.audio.is_streaming():
-            self.audio.stop_audio_stream()
-
     # Unpack streamed data to robot's internal properties
     def _unpack_robot_state(self, _robot, _event_type, msg):
         self._pose = util.Pose(x=msg.pose.x, y=msg.pose.y, z=msg.pose.z,
@@ -717,8 +706,8 @@ class Robot:
         # Shutdown camera feed
         self.camera.close_camera_feed()
 
-        if self.audio and self.audio.is_streaming():
-            self.audio.stop_audio_stream()
+
+        self.audio.stop_audio_stream()
 
         # Shutdown nav map feed
         self.nav_map.close_nav_map_feed()
