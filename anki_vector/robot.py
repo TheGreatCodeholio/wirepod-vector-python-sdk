@@ -576,10 +576,10 @@ class Robot:
         """
         return self._status
 
-    async def start_audio_stream(self):
+    def start_audio_stream(self):
         """Start the audio stream and return chunks for processing."""
         if self.audio:
-            async for chunk in self.audio.stream_robot_audio():
+            for chunk in self.audio.stream_robot_audio():
                 yield chunk
 
     def stop_audio_stream(self):

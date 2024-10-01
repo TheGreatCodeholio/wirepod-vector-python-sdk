@@ -454,22 +454,22 @@ class AudioComponent(util.Component):
         if playback_error is not None:
             raise VectorExternalAudioPlaybackException(f"Error reported during audio playback {playback_error}")
 
-    async def stream_robot_audio(self):
+    def stream_robot_audio(self):
         """Public method to start the audio stream, yielding chunks for external processing."""
         if self._is_streaming:
             raise RuntimeError("Audio stream already running.")
         self._is_streaming = True
 
         try:
-            async for audio_chunk in self._fetch_audio_feed():
+            for audio_chunk in self._fetch_audio_feed():
                 yield audio_chunk
         finally:
             self._is_streaming = False
 
-    async def _fetch_audio_feed(self):
+    def _fetch_audio_feed(self):
         """Fetches the audio feed from the robot."""
         request = protocol.AudioFeedRequest()  # Send the request to initiate the audio feed
-        async for response in self.grpc_interface.AudioFeed(request):
+        for response in self.grpc_interface.AudioFeed(request):
             yield response.audio_data  # Extract audio data from the response
 
     def stop_audio_stream(self):
