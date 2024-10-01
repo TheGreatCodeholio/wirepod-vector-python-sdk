@@ -32,6 +32,8 @@ import time
 import wave
 import io
 import os
+from pathlib import Path
+
 import aiohttp
 from pydub import AudioSegment
 from urllib.parse import urlparse
@@ -116,10 +118,14 @@ class AudioComponent(util.Component):
 
     def __init__(self, robot):
         super().__init__(robot)
+
         self._is_shutdown = False
         # don't create asyncio.Events here, they are not thread-safe
         self._is_active_event = None
         self._done_event = None
+        self._audio_task = None
+        self._audio_queue = asyncio.Queue()
+        self._is_streaming = False
 
     @on_connection_thread(requires_control=False)
     async def set_master_volume(self, volume: RobotVolumeLevel) -> protocol.MasterVolumeResponse:
@@ -451,3 +457,33 @@ class AudioComponent(util.Component):
 
         if playback_error is not None:
             raise VectorExternalAudioPlaybackException(f"Error reported during audio playback {playback_error}")
+
+    async def stream_robot_audio(self):
+        """Public method to start the audio stream, yielding chunks for external processing."""
+        if self._is_streaming:
+            raise RuntimeError("Audio stream already running.")
+        self._is_streaming = True
+
+        try:
+            async for audio_chunk in self._fetch_audio_feed():
+                yield audio_chunk
+        finally:
+            self._is_streaming = False
+
+    async def _fetch_audio_feed(self):
+        """Fetches the audio feed from the robot."""
+        request = self.grpc_interface.AudioFeedRequest()  # Send the request to initiate the audio feed
+        async for response in self.conn.grpc_interface.AudioFeed(request):
+            yield response.audio_data  # Extract audio data from the response
+
+    def stop_audio_stream(self):
+        """Stops the audio feed."""
+        if not self._is_streaming:
+            raise RuntimeError("Audio stream is not running.")
+        self._is_streaming = False
+        if self._audio_task:
+            self._audio_task.cancel()
+
+    def is_streaming(self) -> bool:
+        """Returns whether the audio stream is active."""
+        return self._is_streaming

@@ -24,6 +24,7 @@ caller may use to obtain the result when they desire.
 # __all__ should order by constants, event classes, other classes, functions.
 __all__ = ['Robot', 'AsyncRobot']
 
+import asyncio
 import concurrent
 import functools
 
@@ -194,7 +195,6 @@ class Robot:
         self._last_image_time_stamp: float = None
         self._status: status.RobotStatus = status.RobotStatus()
 
-        self._enable_audio_feed = enable_audio_feed
         if enable_nav_map_feed is not None:
             self._enable_nav_map_feed = enable_nav_map_feed
         else:
@@ -578,32 +578,16 @@ class Robot:
         """
         return self._status
 
-    @property
-    def enable_audio_feed(self) -> bool:
-        """The audio feed enabled/disabled
+    async def start_audio_stream(self):
+        """Start the audio stream and return chunks for processing."""
+        if self.audio:
+            async for chunk in self.audio.stream_robot_audio():
+                yield chunk
 
-        :getter: Returns whether the audio feed is enabled
-        :setter: Enable/disable the audio feed
-
-        .. code-block:: python
-
-            import asyncio
-            import time
-
-            import anki_vector
-
-            with anki_vector.Robot(enable_audio_feed=True) as robot:
-                time.sleep(5)
-                robot.enable_audio_feed = False
-                time.sleep(5)
-        """
-        # TODO When audio is ready, convert `.. code-block:: python` to `.. testcode::`
-        return self._enable_audio_feed
-
-    @enable_audio_feed.setter
-    def enable_audio_feed(self, enable) -> None:
-        self._enable_audio_feed = enable
-        # TODO add audio feed enablement when ready
+    def stop_audio_stream(self):
+        """Stop the audio stream if it's running."""
+        if self.audio and self.audio.is_streaming():
+            self.audio.stop_audio_stream()
 
     # Unpack streamed data to robot's internal properties
     def _unpack_robot_state(self, _robot, _event_type, msg):
@@ -669,7 +653,8 @@ class Robot:
             if isinstance(anim_trigger_request, concurrent.futures.Future):
                 anim_trigger_request.result()
 
-        # TODO enable audio feed when ready
+        if self.enable_audio_feed:
+            asyncio.create_task(self.audio.stream_audio_from_robot())
 
         # Start rendering camera feed
         if self._show_viewer:
@@ -737,7 +722,8 @@ class Robot:
         # Shutdown camera feed
         self.camera.close_camera_feed()
 
-        # TODO shutdown audio feed when available
+        if self.audio and self.audio.is_streaming():
+            self.audio.stop_audio_stream()
 
         # Shutdown nav map feed
         self.nav_map.close_nav_map_feed()
