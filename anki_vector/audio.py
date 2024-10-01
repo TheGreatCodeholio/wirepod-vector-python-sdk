@@ -461,23 +461,27 @@ class AudioComponent(util.Component):
         self._is_streaming = True
 
         try:
-            for audio_chunk in self._fetch_audio_feed():
-                yield audio_chunk
+            # Call the method to initiate streaming in a separate asyncio task
+            audio_feed_task = self.conn.loop.create_task(self._request_and_handle_audio())
+            return audio_feed_task  # This task will yield audio chunks when awaited
         finally:
             self._is_streaming = False
 
-    def _fetch_audio_feed(self):
-        """Fetches the audio feed from the robot."""
-        request = protocol.AudioFeedRequest()  # Send the request to initiate the audio feed
-        for response in self.grpc_interface.AudioFeed(request):
-            yield response
+    async def _request_and_handle_audio(self):
+        """Queries and listens for audio feed events from the robot, yielding chunks."""
+        try:
+            request = protocol.AudioFeedRequest()
+            async for response in self.grpc_interface.AudioFeed(request):
+                # If the audio feed is disabled, exit the stream
+                if not self._is_streaming:
+                    self.logger.warning('Audio feed has been disabled.')
+                    return
+                yield response  # Yield the audio chunks as they come
+        except asyncio.CancelledError:
+            self.logger.debug('Audio feed task was cancelled.')
 
     def stop_audio_stream(self):
         """Stops the audio feed."""
         if not self._is_streaming:
             raise RuntimeError("Audio stream is not running.")
         self._is_streaming = False
-
-    def is_streaming(self) -> bool:
-        """Returns whether the audio stream is active."""
-        return self._is_streaming
