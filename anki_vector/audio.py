@@ -470,7 +470,7 @@ class AudioComponent(util.Component):
         """Fetches the audio feed from the robot."""
         request = protocol.AudioFeedRequest()  # Send the request to initiate the audio feed
         for response in self.grpc_interface.AudioFeed(request):
-            yield response.audio_data  # Extract audio data from the response
+            yield response
 
     def stop_audio_stream(self):
         """Stops the audio feed."""
