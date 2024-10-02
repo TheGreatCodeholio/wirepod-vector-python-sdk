@@ -7,6 +7,6 @@ Pillow>=3.3
 requests~=2.32.3
 
 pydub~=0.25.1
-protobuf~=5.28.2
+protobuf>=4.25.3
 grpcio~=1.66.1
 aiohttp~=3.10.6
