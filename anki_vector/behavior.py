@@ -316,21 +316,33 @@ class BehaviorComponent(util.Component):
         return say_future
 
     # TODO Make this cancellable with is_cancellable_behavior
-    @connection.on_connection_thread(requires_control=False)
+    @connection.on_connection_thread(requires_control=False, is_cancellable=connection.CancelType.CANCELLABLE_BEHAVIOR)
     async def app_intent(self, intent: str, param: Union[str, int] = None) -> protocol.AppIntentResponse:
         """Send Vector an intention to do something.
 
-        .. testcode::
+    .. testcode::
 
-            import anki_vector
-            with anki_vector.Robot(behavior_control_level=None) as robot:
-                robot.behavior.app_intent(intent='intent_system_sleep')
+        import anki_vector
+        with anki_vector.Robot(behavior_control_level=None) as robot:
+            robot.behavior.app_intent(intent='intent_system_sleep')
 
-        :param intent: The intention key
-        :param param: Intention parameter, usually a json encoded string or an int of secounds for the clock timer
+    Example of cancelling the :meth:`app_intent` behavior:
 
-        :return: object that provides the status
-        """
+    .. testcode::
+
+        import anki_vector
+        import time
+
+        with anki_vector.AsyncRobot() as robot:
+            app_intent_future = robot.behavior.app_intent(intent='intent_system_sleep')
+            time.sleep(3.0)
+            app_intent_future.cancel()
+
+    :param intent: The intention key
+    :param param: Intention parameter, usually a JSON encoded string or an int of seconds for the clock timer
+
+    :return: Object that provides the status
+    """
 
         # clock timer uses the length of `param` as the number of seconds to set the timer for
         if intent=='intent_clock_settimer' and type(param) == int:

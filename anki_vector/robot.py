@@ -706,11 +706,11 @@ class Robot:
         # Shutdown camera feed
         self.camera.close_camera_feed()
 
-
-        self.audio.stop_audio_stream()
-
         # Shutdown nav map feed
         self.nav_map.close_nav_map_feed()
+
+        if self.audio._is_streaming:
+            self.audio.stop_audio_stream()
 
         # Close the world and cleanup its objects
         self.world.close()

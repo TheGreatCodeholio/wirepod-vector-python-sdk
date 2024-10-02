@@ -283,6 +283,7 @@ class CameraComponent(util.Component):
         self._gain = 0.0
         self._exposure_ms = 0
         self._auto_exposure_enabled = True
+        self._return_raw_image = False
 
     def set_config(self, message: protocol.CameraConfigRequest):
         """Update Vector's camera configuration from the message sent from the Robot """
@@ -517,11 +518,11 @@ class CameraComponent(util.Component):
         :param enable_high_resolution: Enable/disable request for high resolution images. The default resolution
                                        is 640x360, while the high resolution is 1280x720.
         """
-        if self._enabled:
-            self.logger.warning('Camera feed is enabled. Receiving image from the feed at default resolution.')
-            return self._latest_image
-        if enable_high_resolution:
-            self.logger.warning('Capturing a high resolution (1280*720) image. Image events for this frame need to be scaled.')
+        # if self._enabled:
+        #     self.logger.warning('Camera feed is enabled. Receiving image from the feed at default resolution.')
+        #     return self._latest_image
+        # if enable_high_resolution:
+        #     self.logger.warning('Capturing a high resolution (1280*720) image. Image events for this frame need to be scaled.')
         req = protocol.CaptureSingleImageRequest(enable_high_resolution=enable_high_resolution)
         res = await self.grpc_interface.CaptureSingleImage(req)
         if res and res.data:
